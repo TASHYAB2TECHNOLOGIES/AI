@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Fault Detection Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>AI Fault Detection — Live Demo</h2>
+
+  <div>
+    <label>Select Mode: </label>
+    <select id="label">
+      <option>normal</option>
+      <option>short</option>
+      <option>overload</option>
+      <option>open</option>
+    </select>
+    <button onclick="simulate()">Simulate</button>
+  </div>
+
+  <h3>Prediction: <span id="pred">-</span></h3>
+
+  <canvas id="wave" width="900" height="200"></canvas>
+
+  <script>
+    const ctx = document.getElementById('wave').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: "Voltage", data: [] }] },
+      options: { animation: false, scales: { x: { display: false } } }
+    });
+
+    async function refresh() {
+      const res = await fetch('/stream');
+      const data = await res.json();
+      if (!data.wave_v) return;
+
+      document.getElementById('pred').innerText = data.pred;
+
+      chart.data.labels = data.wave_v.map((_, i) => i);
+      chart.data.datasets[0].data = data.wave_v;
+      chart.update();
+    }
+
+    async function simulate() {
+      const label = document.getElementById('label').value;
+      await fetch('/predict_simulate?label=' + label);
+      await refresh();
+    }
+
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>
